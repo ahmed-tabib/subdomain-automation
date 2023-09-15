@@ -1,0 +1,4 @@
+mongo:
+  uri:                  ""
+  db_name:              "bug-bounty"
+  subdomain_collection: "subdomains"
