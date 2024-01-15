@@ -35,7 +35,7 @@ def submit_to_db(mongo_collection: pymongo.collection.Collection, subdomain_list
         pass
 
 def find_subdomains(wildcard_domain):
-    subprocess.run(["subfinder", "-d", wildcard_domain, "-max-time", "15", "-o", "subfinder-output.txt"])
+    subprocess.run(["subfinder", "-d", wildcard_domain, "-max-time", "15", "-o", "subfinder-output.txt"], stdout=subprocess.DEVNULL)
 
     subdomain_list = []
 
@@ -79,4 +79,8 @@ def main():
             submit_to_db(mongo_subdomain_collection, subs)
 
 if __name__ == "__main__":
-    main()
+    print("subdomain-automation started")
+    try:
+        main()
+    except:
+        print("subdomain-automation triggered an exception.")
