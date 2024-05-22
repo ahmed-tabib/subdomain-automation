@@ -5,16 +5,46 @@ import subprocess
 import logging
 import requests
 import yaml
+import json
 
 def read_config(path):
     with open(path, 'r') as f:
         return yaml.load(f, yaml.SafeLoader)
 
+def domain_program_has_bounties(domain, hackerone_programs, intigriti_programs, bugcrowd_programs):
+    
+    for program in hackerone_programs:
+        for asset in program['targets']['in_scope']:
+            if domain in asset['asset_identifier'] and asset['asset_type'] in ['WILDCARD', 'URL']:
+                return (asset['eligible_for_bounty'], program['url'])
+    
+    for program in intigriti_programs:
+        for asset in program['targets']['in_scope']:
+            if domain in asset['endpoint']:
+                return ((program['max_bounty']['value'] > 0), program['url'])
+    
+    for program in bugcrowd_programs:
+        for asset in program['targets']['in_scope']:
+            if domain in asset['target'] and asset['type'] in ['website', 'api']:
+                return ((program['max_payout'] > 0), program['url'])
+    
+    return (False, None)
+
+
 def fetch_wildcard_domains():
     unfiltered_list = requests.get("https://raw.githubusercontent.com/arkadiyt/bounty-targets-data/main/data/wildcards.txt").content.decode(encoding="ascii").splitlines()
-    final_list = [domain[2:] for domain in unfiltered_list if domain.startswith("*.") and domain.count("*") == 1]
+    unfiltered_list = [domain[2:] for domain in unfiltered_list if domain.startswith("*.") and domain.count("*") == 1]
 
-    return final_list
+    hackerone_programs = json.loads(requests.get("https://raw.githubusercontent.com/arkadiyt/bounty-targets-data/main/data/hackerone_data.json").content.decode(encoding="ascii"))
+    intigriti_programs = json.loads(requests.get("https://raw.githubusercontent.com/arkadiyt/bounty-targets-data/main/data/intigriti_data.json").content.decode(encoding="ascii"))
+    bugcrowd_programs = json.loads(requests.get("https://raw.githubusercontent.com/arkadiyt/bounty-targets-data/main/data/bugcrowd_data.json").content.decode(encoding="ascii"))
+
+    domain_info = [domain_program_has_bounties(domain, hackerone_programs, intigriti_programs, bugcrowd_programs) for domain in unfiltered_list]
+    
+    final_list = [d for d, info in zip(unfiltered_list, domain_info) if info[0]]
+    url_list = [info[1] for info in domain_info if info[0]]
+
+    return final_list, url_list
 
 def fetch_new_domains(old_domain_list):
     unfiltered_list = requests.get("https://raw.githubusercontent.com/arkadiyt/bounty-targets-data/main/data/domains.txt").content.decode(encoding="ascii").splitlines()
@@ -34,8 +64,8 @@ def submit_to_db(mongo_collection: pymongo.collection.Collection, subdomain_list
     except:
         pass
 
-def find_subdomains(wildcard_domain):
-    subprocess.run(["subfinder", "-d", wildcard_domain, "-max-time", "15", "-o", "subfinder-output.txt"], stdout=subprocess.DEVNULL)
+def find_subdomains(wildcard_domain, max_subdomains=0, max_time=15):
+    subprocess.run(["subfinder", "-d", wildcard_domain, "-max-time", str(max_time), "-o", "subfinder-output.txt"], stdout=subprocess.DEVNULL)
 
     subdomain_list = []
 
@@ -45,8 +75,11 @@ def find_subdomains(wildcard_domain):
             subdomain_list = [s.strip() for s in subdomain_list]
     except:
         return []
-    
-    return subdomain_list
+
+    if max_subdomains == 0:
+        return subdomain_list
+    else:
+        return subdomain_list[:max_subdomains]
 
 def main():
     cfg = read_config("config.yaml")
@@ -64,7 +97,7 @@ def main():
         domain_list = fetch_new_domains(domain_list)
         submit_to_db(mongo_subdomain_collection, domain_list)
 
-        wildcard_domain_list = fetch_wildcard_domains()
+        wildcard_domain_list, _ = fetch_wildcard_domains()
 
         for domain in wildcard_domain_list:
 
@@ -82,5 +115,5 @@ if __name__ == "__main__":
     print("subdomain-automation started")
     try:
         main()
-    except:
-        print("subdomain-automation triggered an exception.")
+    except Exception as e:
+        print("subdomain-automation triggered an exception: {}".format(e))
