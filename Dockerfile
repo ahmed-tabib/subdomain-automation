@@ -5,6 +5,6 @@ WORKDIR /subdomain-automation
 COPY . .
 
 RUN pip install pymongo pyyaml requests
-RUN ln -s /subdomain-automation/subfinder /usr/bin
+RUN chmod +x /subdomain-automation/subfinder && ln -s /subdomain-automation/subfinder /usr/bin
 
 CMD ["python", "startup.py"]
