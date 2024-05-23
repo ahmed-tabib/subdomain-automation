@@ -32,12 +32,12 @@ def domain_program_has_bounties(domain, hackerone_programs, intigriti_programs, 
 
 
 def fetch_wildcard_domains():
-    unfiltered_list = requests.get("https://raw.githubusercontent.com/arkadiyt/bounty-targets-data/main/data/wildcards.txt").content.decode(encoding="ascii").splitlines()
+    unfiltered_list = requests.get("https://raw.githubusercontent.com/arkadiyt/bounty-targets-data/main/data/wildcards.txt").content.decode(encoding="utf-8").splitlines()
     unfiltered_list = [domain[2:] for domain in unfiltered_list if domain.startswith("*.") and domain.count("*") == 1]
 
-    hackerone_programs = json.loads(requests.get("https://raw.githubusercontent.com/arkadiyt/bounty-targets-data/main/data/hackerone_data.json").content.decode(encoding="ascii"))
-    intigriti_programs = json.loads(requests.get("https://raw.githubusercontent.com/arkadiyt/bounty-targets-data/main/data/intigriti_data.json").content.decode(encoding="ascii"))
-    bugcrowd_programs = json.loads(requests.get("https://raw.githubusercontent.com/arkadiyt/bounty-targets-data/main/data/bugcrowd_data.json").content.decode(encoding="ascii"))
+    hackerone_programs = json.loads(requests.get("https://raw.githubusercontent.com/arkadiyt/bounty-targets-data/main/data/hackerone_data.json").content.decode(encoding="utf-8"))
+    intigriti_programs = json.loads(requests.get("https://raw.githubusercontent.com/arkadiyt/bounty-targets-data/main/data/intigriti_data.json").content.decode(encoding="utf-8"))
+    bugcrowd_programs = json.loads(requests.get("https://raw.githubusercontent.com/arkadiyt/bounty-targets-data/main/data/bugcrowd_data.json").content.decode(encoding="utf-8"))
 
     domain_info = [domain_program_has_bounties(domain, hackerone_programs, intigriti_programs, bugcrowd_programs) for domain in unfiltered_list]
     
@@ -47,7 +47,7 @@ def fetch_wildcard_domains():
     return final_list, url_list
 
 def fetch_new_domains(old_domain_list):
-    unfiltered_list = requests.get("https://raw.githubusercontent.com/arkadiyt/bounty-targets-data/main/data/domains.txt").content.decode(encoding="ascii").splitlines()
+    unfiltered_list = requests.get("https://raw.githubusercontent.com/arkadiyt/bounty-targets-data/main/data/domains.txt").content.decode(encoding="utf-8").splitlines()
     old_domain_set = set(old_domain_list)
     new_domain_set = set(unfiltered_list)
 
