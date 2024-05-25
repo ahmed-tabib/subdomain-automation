@@ -16,7 +16,7 @@ def domain_program_has_bounties(domain, hackerone_programs, intigriti_programs, 
     for program in hackerone_programs:
         for asset in program['targets']['in_scope']:
             if domain in asset['asset_identifier'] and asset['asset_type'] in ['WILDCARD', 'URL']:
-                return (asset['eligible_for_bounty'], program['url'])
+                return (program['offers_bounties'], program['url'])
     
     for program in intigriti_programs:
         for asset in program['targets']['in_scope']:
